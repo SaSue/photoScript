@@ -826,7 +826,7 @@ else if item 1 of choosen_Script is equal to "In Album kopieren" then
 			set end of imageList to source
 		end repeat
 		
-		set meldung to (meldung & "nach: " & return)
+		set meldung to (meldung & "zu: " & return)
 		if theSelectedAlbum is false then
 			return
 		else
@@ -835,6 +835,7 @@ else if item 1 of choosen_Script is equal to "In Album kopieren" then
 				set idOfAlbum to "NotSet" as string
 				
 				set meldung to meldung & item d of theSelectedAlbum & return
+				set meldung to meldung & "hinzugefügt."
 				add imageList to my find_album(item d of theSelectedAlbum)
 			end repeat
 			
