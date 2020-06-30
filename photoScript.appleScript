@@ -1078,27 +1078,28 @@ end tell
 on find_album(complete_album_string)
 	set textArray to my splitText(complete_album_string, "/")
 	
-	
 	tell application "Photos"
 		activate
 		
-		if (count of textArray) is 1 then
+		set countMax to length of textArray
+		if countMax = 1 then
 			set selectedAlbum to album (item 1 of textArray)
-		end if
-		if (count of textArray) is 2 then
-			set subFolder to folder (item 1 of textArray)
-			set selectedAlbum to album (item 2 of textArray) in subFolder
-		end if
-		if (count of textArray) is 3 then
-			set subFolder to folder (item 1 of textArray)
-			set subFolder2 to folder (item 2 of textArray) in subFolder
-			set selectedAlbum to album (item 3 of textArray) in subFolder2
-		end if
-		if (count of textArray) is 4 then
-			set subFolder to folder (item 1 of textArray)
-			set subFolder2 to folder (item 2 of textArray) in subFolder
-			set subFolder3 to folder (item 3 of textArray) in subFolder2
-			set selectedAlbum to album (item 4 of textArray) in subFolder3
+		else if countMax > 1 then
+			set countMaxFolder to countMax - 1
+			
+			repeat with d from 1 to countMaxFolder
+				
+				if d = 1 then
+					set tempFolder to folder (item d of textArray)
+				else
+					set tempFolder to folder (item d of textArray) in subfolder
+				end if
+				
+				set subfolder to tempFolder
+				
+			end repeat
+			
+			set selectedAlbum to album (item countMax of textArray) in tempFolder
 		end if
 		
 		return selectedAlbum
@@ -1138,6 +1139,11 @@ on list_unique(the_list)
 	
 end list_unique
 
+
+on find_folder_recursive(thisId, folder)
+	-- dummy function for further version
+end find_folder_recursive
+
 on find_folders(thisId)
 	tell application "Photos"
 		activate
@@ -1161,11 +1167,11 @@ on find_folders(thisId)
 			
 			set subFolderList to every folder of topFolder
 			
-			repeat with subFolder in subFolderList
-				set tempSubFolder to name of subFolder
+			repeat with subfolder in subFolderList
+				set tempSubFolder to name of subfolder
 				
 				
-				set theseNamesTemp to name of (albums of subFolder whose id of media items contains thisId)
+				set theseNamesTemp to name of (albums of subfolder whose id of media items contains thisId)
 				if theseNamesTemp is not {} then
 					repeat with itemTemp in theseNamesTemp
 						set end of theseNamesFunct to tempTopFolder & "/" & tempSubFolder & "/" & itemTemp
@@ -1173,7 +1179,7 @@ on find_folders(thisId)
 				end if
 				
 				
-				set secondSubFolderList to every folder of subFolder
+				set secondSubFolderList to every folder of subfolder
 				
 				repeat with secondSubFolder in secondSubFolderList
 					set tempSecondSubFolder to name of secondSubFolder
@@ -1216,4 +1222,4 @@ on replace_chars(this_text, search_string, replacement_string)
 	set this_text to the item_list as string
 	set AppleScript's text item delimiters to ""
 	return this_text
-end replace_chars
+	end replace_chars
