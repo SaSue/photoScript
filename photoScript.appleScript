@@ -1,5 +1,5 @@
 -- favorit folders für kopieren anlegen
-set theAlbumChoices to {"Familie und Kinder/Kinder", "Familie und Kinder/Ausflüge/Verschiedene Ausflüge", "Haus und Garten/Garten", "Haus und Garten/Haus", "Haustiere/Aquarium", "Haustiere/Kaninchen", "Haustiere/Katze", "! Wartungsalben/! ToDo", "Essen und Grillen", "Dias zum sortieren", "! Wartungsalben/! Test"}
+set theAlbumChoices to {"Familie und Kinder/Kinder", "Familie und Kinder/Ausflüge/Verschiedene Ausflüge", "Haus und Garten/Garten", "Haus und Garten/Haus", "Haustiere/Aquarium", "Haustiere/Hamster", "Haustiere/Kaninchen", "Haustiere/Katze", "! Wartungsalben/! ToDo", "Essen und Grillen", "Dias zum sortieren", "! Wartungsalben/! Test"}
 
 -- locations setzen, bitte Clipboard *nicht* entfernen
 set myLocations to {{"Clipboard", 0, 0}, {"Brandenburger Tor", 52.5164, 13,3780}, {"Piccaddily Circus", 51.5101, -0.1344}, {"Eifelturm", 48.8580, 2.2947}}
@@ -7,7 +7,7 @@ set myLocations to {{"Clipboard", 0, 0}, {"Brandenburger Tor", 52.5164, 13,3780}
 -- fragen welches Script ausgeführt werden soll
 set meldung to "" as string
 set meldung_title to "" as string
-set script_liste to {"GPS Daten hinzufügen", "In Album kopieren", "AVI nach mp4 konvertieren", "TIFF/PSD nach jpg konvertieren", "Kopiere Datum auf anderes Foto", "Kopiere GPS auf anderes Foto", "Zeige weitere Alben", "Datum aus Dateiname", "Titel einfügen", "Beschreibung einfügen", "Nach Jahren sortieren", "Nach Dateigröße sortieren", "Schlagwörter ergänzen"}
+set script_liste to {"GPS Daten hinzufügen", "In Album kopieren", "AVI nach mp4 konvertieren", "TIFF/PSD nach jpg konvertieren", "Kopiere Datum auf anderes Foto", "Kopiere GPS auf anderes Foto", "Zeige weitere Alben - neu", "Zeige weitere Alben - alt", "Datum aus Dateiname", "Titel einfügen", "Beschreibung einfügen", "Nach Jahren sortieren", "Nach Dateigröße sortieren", "Schlagwörter ergänzen"}
 
 set choosen_Script to choose from list script_liste with prompt "Wählen Sie das auszufüherende Script:"
 
@@ -90,33 +90,33 @@ if item 1 of choosen_Script is equal to "AVI nach mp4 konvertieren" then
 		
 	end tell
 	
-	set theseNames to my find_folders(thisId)
-	
-	if theseNames is not {} then
-		activate
-		
-		if (count of theseNames) is 1 then
+	set theseNames to my find_folder_recursive(thisId, "initialize", {}, {})
+	tell application "Photos"
+		if theseNames is not {} then
+			activate
 			
-			set theSelectedAlbum to theseNames
-			
+			if (count of theseNames) is 1 then
+				
+				set theSelectedAlbum to theseNames
+				
+			else
+				set theAlbumChoices to theseNames
+				set theSelectedAlbum to choose from list theAlbumChoices with prompt "Album für den Import der konvertierten Datei:" with multiple selections allowed
+				
+			end if
 		else
-			set theAlbumChoices to theseNames
-			set theSelectedAlbum to choose from list theAlbumChoices with prompt "Album für den Import der konvertierten Datei:" with multiple selections allowed
-			
+			set t to "No album"
+			return
 		end if
-	else
-		set t to "No album"
-		return
-	end if
-	
-	set theDialogText to "Bitte Qualität auswählen"
-	display dialog theDialogText buttons {"Low", "High"} default button "High"
-	if button returned of result = "Low" then
-		set quality to "Low"
-	else if button returned of result = "High" then
-		set quality to "High"
-	end if
-	
+		
+		set theDialogText to "Bitte Qualität auswählen"
+		display dialog theDialogText buttons {"Low", "High"} default button "High"
+		if button returned of result = "Low" then
+			set quality to "Low"
+		else if button returned of result = "High" then
+			set quality to "High"
+		end if
+	end tell
 	if theSelectedAlbum is false then
 		return
 	else
@@ -289,8 +289,7 @@ else if item 1 of choosen_Script is equal to "TIFF/PSD nach jpg konvertieren" th
 			end try --second attempt
 		end try
 		
-		set theseNames to my find_folders(thisId)
-		
+		set theseNames to my find_folder_recursive(thisId, "initialize", {}, {})
 	end tell
 	
 	if theseNames is not {} then
@@ -826,7 +825,7 @@ else if item 1 of choosen_Script is equal to "In Album kopieren" then
 			set end of imageList to source
 		end repeat
 		
-		set meldung to (meldung & "nach: " & return)
+		set meldung to (meldung & "zu: " & return)
 		if theSelectedAlbum is false then
 			return
 		else
@@ -835,6 +834,7 @@ else if item 1 of choosen_Script is equal to "In Album kopieren" then
 				set idOfAlbum to "NotSet" as string
 				
 				set meldung to meldung & item d of theSelectedAlbum & return
+				set meldung to meldung & "hinzugefügt."
 				add imageList to my find_album(item d of theSelectedAlbum)
 			end repeat
 			
@@ -901,7 +901,7 @@ else if item 1 of choosen_Script is equal to "Datum aus Dateiname" then
 		
 	end tell
 	
-else if item 1 of choosen_Script is equal to "Zeige weitere Alben" then
+else if item 1 of choosen_Script is equal to "Zeige weitere Alben - alt" then
 	
 	log "Starte mit Schleife " & item 1 of choosen_Script
 	
@@ -1063,41 +1063,202 @@ else if item 1 of choosen_Script is equal to "GPS Daten hinzufügen" then
 		end tell
 		
 	end if
+else if item 1 of choosen_Script is equal to "Zeige weitere Alben - neu" then
+	log "Starte mit Schleife " & item 1 of choosen_Script
+	
+	tell application "Photos"
+		activate
+		-- Add the photo you want to search for to a top level album as the first item in the album
+		
+		set resultcaption to "Suche nach: "
+		try
+			
+			set sel to selection
+			if sel is {} then error "The selection  is empty" -- no selection
+			
+		on error errTexttwo number errNumtwo
+			display dialog "No photos selected " & errNumtwo & return & errTexttwo
+			return
+		end try
+		
+		set imagename to "unknown filename"
+		try
+			set target to item 1 of sel -- the image to seach for
+			tell target
+				set imagename to the filename of target
+			end tell
+		on error errTexttwo number errNumtwo
+			display dialog "Cannot get the filename of the first image: " & errNumtwo & return & errTexttwo
+		end try
+		set resultcaption to (resultcaption & imagename)
+		
+		try
+			set item_id to id of item 1 of sel
+		on error errText number errNum
+			display dialog "Error: cannot get the image ID" & errNum & return & errText & "Trying again"
+			
+			try
+				delay 2
+				set item_id to id of item 1 of sel
+			on error errTexttwo number errNumtwo
+				display dialog "Skipping image due to repeated error: " & errNumtwo & return & errTexttwo
+				error "giving up"
+				return
+			end try --second attempt
+		end try
+		
+	end tell
+	
+	set theseNames to my find_folder_recursive(item_id, "initialize", {}, {})
+	
+else
+	set t to "No album"
 end if
 
--- meldung anzeigen
-tell application "Photos"
-	activate
-	display dialog meldung with title meldung_title
-	log meldung
-	log "Fertig"
-end tell
+
+if theseNames is not {} then
+	-- meldung anzeigen
+	tell application "Photos"
+		activate
+		set theAlbumChoices to theseNames
+		set theSelectedAlbum to choose from list theAlbumChoices with prompt "Gefunden in folgenden Alben:"
+		set the clipboard to item 1 of theSelectedAlbum
+		log meldung
+		log "Fertig"
+	end tell
+end if
 -- ab hier wiederverwendete Funktionen
 
+
+on find_folder_recursive(thisId, actualFolder, fullPath, sammlung)
+	tell application "Photos"
+		set tempPath to fullPath
+		set tmp_sammlung to {}
+		
+		
+		activate
+		-- albumsliste setzten auf leer / ini it
+		set albumNamesTemp to {}
+		
+		if actualFolder = "initialize" then
+			set theseAlbums to (albums whose id of media items contains thisId)
+			if theseAlbums is not {} then
+				
+				repeat with actualAlbum in theseAlbums
+					set end of sammlung to (name of actualAlbum as string)
+					log (name of actualAlbum as string)
+					
+				end repeat
+			end if
+			
+			
+			set FolderList to every folder
+			
+		else
+			set FolderList to every folder of actualFolder
+			set tempPath to tempPath & (name of actualFolder as string)
+		end if
+		
+		set item_count to (get count of items in FolderList)
+		
+		repeat with the_item in FolderList
+			
+			
+			set theseAlbums to (albums of the_item whose id of media items contains thisId)
+			if theseAlbums is not {} then
+				
+				repeat with actualAlbum in theseAlbums
+					set tmp_path_complete to "" as string
+					if actualFolder is not "initialize" then
+						
+						repeat with tmp_path in tempPath
+							set tmp_path_complete to tmp_path_complete & tmp_path & "/"
+						end repeat
+					end if
+					set tmp_path_complete to (tmp_path_complete & name of the_item as string) & "/" & name of actualAlbum as string
+					set end of sammlung to tmp_path_complete
+					log tmp_path_complete
+					
+				end repeat
+				
+			end if
+			set sammlung to my find_folder_recursive(thisId, the_item, tempPath, sammlung)
+			
+		end repeat
+		
+		
+	end tell
+	
+	return sammlung
+end find_folder_recursive
+
+on dummy()
+	
+	tell application "Photos"
+		set tempPath to fullPath
+		
+		
+		activate
+		-- albumsliste setzten auf leer / ini it
+		set albumNamesTemp to {}
+		
+		if actualFolder = "initialize" then
+			set FolderList to every folder
+			
+		else
+			set FolderList to every folder of actualFolder
+			set tempPath to tempPath & (name of actualFolder as string)
+		end if
+		
+		set item_count to (get count of items in FolderList)
+		
+		repeat with the_item in FolderList
+			-- set theseAlbums to (albums of the_item whose id of media items contains thisId)
+			-- if theseAlbums is not {} then
+			-- display dialog name of item 1 of theseAlbums as string
+			
+			-- set parentfolder to get parent of item 1 of theseAlbums as container
+			
+			-- set parentFolderName to get name of parentfolder
+			if actualFolder is not "initialize" then
+				display dialog (tempPath as string) & name of the_item
+			else
+				display dialog name of the_item as string
+			end if
+			
+			my find_folder_recursive(thisId, the_item, tempPath)
+			
+		end repeat
+		
+		
+	end tell
+	return albumNamesTemp
+end dummy
 on find_album(complete_album_string)
 	set textArray to my splitText(complete_album_string, "/")
-	
 	
 	tell application "Photos"
 		activate
 		
-		if (count of textArray) is 1 then
+		set countMax to length of textArray
+		if countMax = 1 then
 			set selectedAlbum to album (item 1 of textArray)
-		end if
-		if (count of textArray) is 2 then
-			set subFolder to folder (item 1 of textArray)
-			set selectedAlbum to album (item 2 of textArray) in subFolder
-		end if
-		if (count of textArray) is 3 then
-			set subFolder to folder (item 1 of textArray)
-			set subFolder2 to folder (item 2 of textArray) in subFolder
-			set selectedAlbum to album (item 3 of textArray) in subFolder2
-		end if
-		if (count of textArray) is 4 then
-			set subFolder to folder (item 1 of textArray)
-			set subFolder2 to folder (item 2 of textArray) in subFolder
-			set subFolder3 to folder (item 3 of textArray) in subFolder2
-			set selectedAlbum to album (item 4 of textArray) in subFolder3
+		else if countMax > 1 then
+			set countMaxFolder to countMax - 1
+			
+			repeat with d from 1 to countMaxFolder
+				
+				if d = 1 then
+					set tempFolder to folder (item d of textArray)
+				else
+					set tempFolder to folder (item d of textArray) in subfolder
+				end if
+				
+				set subfolder to tempFolder
+				
+			end repeat
+			
+			set selectedAlbum to album (item countMax of textArray) in tempFolder
 		end if
 		
 		return selectedAlbum
@@ -1160,11 +1321,11 @@ on find_folders(thisId)
 			
 			set subFolderList to every folder of topFolder
 			
-			repeat with subFolder in subFolderList
-				set tempSubFolder to name of subFolder
+			repeat with subfolder in subFolderList
+				set tempSubFolder to name of subfolder
 				
 				
-				set theseNamesTemp to name of (albums of subFolder whose id of media items contains thisId)
+				set theseNamesTemp to name of (albums of subfolder whose id of media items contains thisId)
 				if theseNamesTemp is not {} then
 					repeat with itemTemp in theseNamesTemp
 						set end of theseNamesFunct to tempTopFolder & "/" & tempSubFolder & "/" & itemTemp
@@ -1172,7 +1333,7 @@ on find_folders(thisId)
 				end if
 				
 				
-				set secondSubFolderList to every folder of subFolder
+				set secondSubFolderList to every folder of subfolder
 				
 				repeat with secondSubFolder in secondSubFolderList
 					set tempSecondSubFolder to name of secondSubFolder
@@ -1215,4 +1376,4 @@ on replace_chars(this_text, search_string, replacement_string)
 	set this_text to the item_list as string
 	set AppleScript's text item delimiters to ""
 	return this_text
-end replace_chars
+	end replace_chars
