@@ -95,15 +95,11 @@ if item 1 of choosen_Script is equal to "AVI nach mp4 konvertieren" then
 		if theseNames is not {} then
 			activate
 			
-			if (count of theseNames) is 1 then
-				
-				set theSelectedAlbum to theseNames
-				
-			else
-				set theAlbumChoices to theseNames
-				set theSelectedAlbum to choose from list theAlbumChoices with prompt "Album für den Import der konvertierten Datei:" with multiple selections allowed
-				
-			end if
+			
+			set theAlbumChoices to theseNames
+			set theSelectedAlbum to choose from list theAlbumChoices with prompt "Album für den Import der konvertierten Datei:" with multiple selections allowed
+			
+			
 		else
 			set t to "No album"
 			return
@@ -157,16 +153,15 @@ if item 1 of choosen_Script is equal to "AVI nach mp4 konvertieren" then
 		end timeout
 		
 		tell application "Photos"
+			activate
 			set meldungAlben to "" as string
-			repeat with d from 1 to the count of theSelectedAlbum
+			
+			repeat with d from 1 to the length of theSelectedAlbum
 				
 				set meldungAlben to meldungAlben & item d of theSelectedAlbum & return
 				set selectedAlbum to my find_album(item d of theSelectedAlbum)
 				
-				activate
 				-- Add the photo you want to search for to a top level album as the first item in the album
-				
-				--	tell application "Finder" to set importList to every file of importFolder whose name extension is "mp4"
 				set imageList to {}
 				set extensionsList to {"mp4"}
 				tell application "Finder" to set theFiles to (every file of folder sourceFolder whose name extension is extensionsList)
@@ -176,6 +171,7 @@ if item 1 of choosen_Script is equal to "AVI nach mp4 konvertieren" then
 					set this_item to item i of theFiles as alias
 					set the end of imageList to this_item
 				end repeat
+				
 				if d = 1 then -- im ersten Durchgang importieren in das Album
 					set importedFileList to import imageList into selectedAlbum
 				else if d > 1 then -- in allen nachfolgenden Durchgängen dem Album zuweisen
@@ -315,7 +311,7 @@ else if item 1 of choosen_Script is equal to "TIFF/PSD nach jpg konvertieren" th
 	else
 		tell application "Photos"
 			set meldungAlben to "" as string
-			repeat with i from 1 to the count of theSelectedAlbum
+			repeat with i from 1 to the length of theSelectedAlbum
 				
 				set meldungAlben to meldungAlben & item i of theSelectedAlbum & return
 				set selectedAlbum to my find_album(item i of theSelectedAlbum)
@@ -832,17 +828,12 @@ else if item 1 of choosen_Script is equal to "In Album kopieren" then
 			
 			repeat with d from 1 to the count of theSelectedAlbum
 				set idOfAlbum to "NotSet" as string
-				
 				set meldung to meldung & item d of theSelectedAlbum & return
-				set meldung to meldung & "hinzugefügt."
 				add imageList to my find_album(item d of theSelectedAlbum)
 			end repeat
-			
+			set meldung to meldung & "hinzugefügt."
 		end if
-		
 	end tell
-	
-	
 	
 else if item 1 of choosen_Script is equal to "Datum aus Dateiname" then
 	log "Starte mit Schleife " & item 1 of choosen_Script
@@ -1111,22 +1102,28 @@ else if item 1 of choosen_Script is equal to "Zeige weitere Alben - neu" then
 	
 	set theseNames to my find_folder_recursive(item_id, "initialize", {}, {})
 	
-else
-	set t to "No album"
+	if theseNames is not {} then
+		-- meldung anzeigen
+		tell application "Photos"
+			activate
+			set theAlbumChoices to theseNames
+			set theSelectedAlbum to choose from list theAlbumChoices with prompt "Gefunden in folgenden Alben:"
+			if theSelectedAlbum is false then error number -128 -- user canceled
+			set the clipboard to (item 1 of theSelectedAlbum as string)
+			set meldung to (item 1 of the theSelectedAlbum as string) & " in die Zwischenablage kopiert."
+			log meldung
+			log "Fertig"
+		end tell
+	end if
 end if
 
-
-if theseNames is not {} then
-	-- meldung anzeigen
-	tell application "Photos"
-		activate
-		set theAlbumChoices to theseNames
-		set theSelectedAlbum to choose from list theAlbumChoices with prompt "Gefunden in folgenden Alben:"
-		set the clipboard to item 1 of theSelectedAlbum
-		log meldung
-		log "Fertig"
-	end tell
-end if
+-- meldung anzeigen
+tell application "Photos"
+	activate
+	display dialog meldung with title meldung_title
+	log meldung
+	log "Fertig"
+end tell
 -- ab hier wiederverwendete Funktionen
 
 
@@ -1297,11 +1294,6 @@ on list_unique(the_list)
 	return my_new_list
 	
 end list_unique
-
-
-on find_folder_recursive(thisId, folder)
-	-- dummy function for further version
-end find_folder_recursive
 
 on find_folders(thisId)
 	tell application "Photos"
