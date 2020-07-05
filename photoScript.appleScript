@@ -95,11 +95,9 @@ if item 1 of choosen_Script is equal to "AVI nach mp4 konvertieren" then
 		if theseNames is not {} then
 			activate
 			
-			
 			set theAlbumChoices to theseNames
 			set theSelectedAlbum to choose from list theAlbumChoices with prompt "Album für den Import der konvertierten Datei:" with multiple selections allowed
-			
-			
+
 		else
 			set t to "No album"
 			return
@@ -1108,9 +1106,11 @@ else if item 1 of choosen_Script is equal to "Zeige weitere Alben - neu" then
 			activate
 			set theAlbumChoices to theseNames
 			set theSelectedAlbum to choose from list theAlbumChoices with prompt "Gefunden in folgenden Alben:"
+
 			if theSelectedAlbum is false then error number -128 -- user canceled
 			set the clipboard to (item 1 of theSelectedAlbum as string)
 			set meldung to (item 1 of the theSelectedAlbum as string) & " in die Zwischenablage kopiert."
+
 			log meldung
 			log "Fertig"
 		end tell
