@@ -95,15 +95,9 @@ if item 1 of choosen_Script is equal to "AVI nach mp4 konvertieren" then
 		if theseNames is not {} then
 			activate
 			
-			if (count of theseNames) is 1 then
-				
-				set theSelectedAlbum to item 1 of theseNames
-				
-			else
-				set theAlbumChoices to theseNames
-				set theSelectedAlbum to choose from list theAlbumChoices with prompt "Album für den Import der konvertierten Datei:" with multiple selections allowed
-				
-			end if
+			set theAlbumChoices to theseNames
+			set theSelectedAlbum to choose from list theAlbumChoices with prompt "Album für den Import der konvertierten Datei:" with multiple selections allowed
+
 		else
 			set t to "No album"
 			return
@@ -832,17 +826,12 @@ else if item 1 of choosen_Script is equal to "In Album kopieren" then
 			
 			repeat with d from 1 to the count of theSelectedAlbum
 				set idOfAlbum to "NotSet" as string
-				
 				set meldung to meldung & item d of theSelectedAlbum & return
-				set meldung to meldung & "hinzugefügt."
 				add imageList to my find_album(item d of theSelectedAlbum)
 			end repeat
-			
+			set meldung to meldung & "hinzugefügt."
 		end if
-		
 	end tell
-	
-	
 	
 else if item 1 of choosen_Script is equal to "Datum aus Dateiname" then
 	log "Starte mit Schleife " & item 1 of choosen_Script
@@ -1117,8 +1106,11 @@ else if item 1 of choosen_Script is equal to "Zeige weitere Alben - neu" then
 			activate
 			set theAlbumChoices to theseNames
 			set theSelectedAlbum to choose from list theAlbumChoices with prompt "Gefunden in folgenden Alben:"
-			set the clipboard to item 1 of theSelectedAlbum
-			set meldung to item 1 of the selectedAlbum
+
+			if theSelectedAlbum is false then error number -128 -- user canceled
+			set the clipboard to (item 1 of theSelectedAlbum as string)
+			set meldung to (item 1 of the theSelectedAlbum as string) & " in die Zwischenablage kopiert."
+
 			log meldung
 			log "Fertig"
 		end tell
