@@ -8,7 +8,6 @@ Das Script ist auch Spielwiese für mich, GitHub kennenzulernen und etwas auszup
 Alle Infos findet Ihr hier:
 https://github.com/SaSue/photoScript
 
-
 Gern eröffnet ein Ticket wenn Ihr Probleme habt oder etwas nicht funktioniert. Ich schaue es mir an. Aber wie gesagt: Es ist mein Hobby ... daher kann es manchmal auch dauern.
 
 Ihr wollt mich unterstützen oder euch bedanken: Gern! Hier ein anonymer Moneypool bei Paypal, ich freue mich über jeden Cent Beitrag!
