@@ -20,7 +20,7 @@ Vielen Dank insbesondere an https://discussions.apple.com/profile/léonie - sein
 
 ## Installieren
 
-Das Script ist schnell implementiert
+Das Script ist schnell implementiert... also los gehts ...
 
 ### Script/Programm erstellen
 
