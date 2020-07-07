@@ -7,13 +7,13 @@ set myLocations to {{"Clipboard", 0, 0}, {"Brandenburger Tor", 52.5164, 13,3780}
 -- fragen welches Script ausgeführt werden soll
 set meldung to "" as string
 set meldung_title to "" as string
-set script_liste to {"GPS Daten hinzufügen", "In Album kopieren", "In Album kopieren über auswählen/erstellen", "AVI nach mp4 konvertieren", "TIFF/PSD nach jpg konvertieren", "Kopiere Datum auf anderes Foto", "Kopiere GPS auf anderes Foto", "Zeige weitere Alben - neu", "Zeige weitere Alben - alt", "Datum aus Dateiname", "Titel einfügen", "Beschreibung einfügen", "Nach Jahren sortieren", "Nach Dateigröße sortieren", "Schlagwörter ergänzen"}
+set script_liste to {"--- Fotos kopieren ---", "In Album kopieren", "In Album kopieren über auswählen/erstellen", "--- Meta Daten bearbeiten ---", "Titel einfügen", "Beschreibung aus Album", "Beschreibung einfügen", "Schlagwörter ergänzen", "--- GPS Daten bearbeiten ---", "GPS Daten hinzufügen", "Kopiere GPS auf anderes Foto", "--- Datum bearbeiten ---", "Kopiere Datum auf anderes Foto", "Datum aus Dateiname", "--- Konvertieren ---", "AVI nach mp4 konvertieren", "TIFF/PSD nach jpg konvertieren", "--- Alben suchen ---", "Zeige weitere Alben", "--- Sortieren ---", "Nach Jahren sortieren", "Nach Dateigröße sortieren"}
 
 set choosen_Script to choose from list script_liste with prompt "Wählen Sie das auszufüherende Script:"
 
-if choosen_Script is false then -- falls nichts ausgewählt wurde
+if (choosen_Script is false) or (item 1 of choosen_Script starts with "---") then -- falls nichts ausgewählt wurde
 	log "Nichts ausgewählt"
-	set meldung to meldung & "Keine Auswahl getroffen" & return
+	set meldung to meldung & "Kein Script ausgewählt" & return
 	set meldung_title to "Abbruch"
 	
 else
@@ -22,7 +22,28 @@ else
 	log "Gewähltes Script: "
 	log choosen_Script
 	
-	if item 1 of choosen_Script is equal to "In Album kopieren über auswählen/erstellen" then
+	if item 1 of choosen_Script is equal to "Beschreibung aus Album" then
+		log "Starte mit Schleife " & item 1 of choosen_Script
+		tell application "Photos"
+			activate
+			set meldung to "Beschreibung:" & return
+			set sel to selection
+			
+			if sel is {} then error "The selection  is empty" -- no selection
+			
+			
+			set imageList to {}
+			
+			set actualImage to item 1 of sel
+			
+			set actualAlbum to sel
+			display dialog name of actualAlbum as string
+			repeat with source in sel
+				set meldung to (meldung & filename of source & return)
+				set end of imageList to source
+			end repeat
+		end tell
+	else if item 1 of choosen_Script is equal to "In Album kopieren über auswählen/erstellen" then
 		log "Starte mit Schleife " & item 1 of choosen_Script
 		
 		set my_album to my find_album_selector("initalize", "")
@@ -62,15 +83,8 @@ else
 			end if
 		end tell
 		
-		
-		
-		
-		
-		
-		
 	else if item 1 of choosen_Script is equal to "AVI nach mp4 konvertieren" then
 		log "Starte mit Schleife " & item 1 of choosen_Script
-		
 		
 		set sourceFolder to choose folder with prompt "Wählen Sie einen temporären Ordner für die Konvertierung aus:" with multiple selections allowed
 		set dest_folder to sourceFolder
@@ -142,10 +156,8 @@ else
 			if theseNames is not {} then
 				activate
 				
-				
 				set theAlbumChoices to theseNames
 				set theSelectedAlbum to choose from list theAlbumChoices with prompt "Album für den Import der konvertierten Datei:" with multiple selections allowed
-				
 				
 			else
 				set t to "No album"
@@ -172,7 +184,6 @@ else
 					
 					--Repeat for all files in above folder
 					repeat with datei in dateiListe
-						
 						
 						try
 							
@@ -617,27 +628,25 @@ else
 	else if item 1 of choosen_Script is equal to "Beschreibung einfügen" then
 		log "Starte mit Schleife " & item 1 of choosen_Script
 		
-		set theResponse to display dialog "Bitte Kommentar für die Fotos eingeben:" default answer (the clipboard as text) with icon note buttons {"Cancel", "Continue"} default button "Continue"
-		if button returned of theResponse = "Continue" then
-			set kommentar to text returned of theResponse
+		tell application "Photos"
+			activate
 			
-			
-			tell application "Photos"
-				activate
+			set result to display dialog "Bitte Beschreibung für die Fotos eingeben:" default answer (the clipboard as text) with icon note buttons {"Cancel", "Replace", "Append"} default button "Append"
+			copy the result to {button returned:buttonPressed, text returned:theResponse}
+			set kommentar to theResponse
+			try
+				set sel to selection
+				if sel is {} then error "The selection  is empty" -- no selection
+				
+			on error errTexttwo number errNumtwo
+				display dialog "No photos selected " & errNumtwo & return & errTexttwo
+				return
+			end try
+			if buttonPressed = "Replace" then
+				
 				-- Add the photo you want to search for to a top level album as the first item in the album
 				
-				try
-					
-					set sel to selection
-					if sel is {} then error "The selection  is empty" -- no selection
-					
-				on error errTexttwo number errNumtwo
-					display dialog "No photos selected " & errNumtwo & return & errTexttwo
-					return
-				end try
 				set i_count to 0
-				
-				
 				repeat with source in sel
 					try
 						set i_count to i_count + 1
@@ -650,13 +659,28 @@ else
 				end repeat
 				set meldung to "Kommentar: " & kommentar & " wurde in " & i_count & " Fotos gesetzt."
 				
+			else if buttonPressed = "Append" then
 				
-			end tell
-		else
+				set i_count to 0
+				repeat with source in sel
+					try
+						set i_count to i_count + 1
+						set oldKommentar to get description of source
+						if oldKommentar = missing value then set oldKommentar to ""
+						set description of source to kommentar & " " & oldKommentar
+						
+					on error errTexttwo number errNumtwo
+						display dialog "Konnte nicht eingefügt werden " & errNumtwo & return & errTexttwo
+						return
+					end try
+				end repeat
+				set meldung to "Kommentar: " & kommentar & " wurde in " & i_count & " Fotos angehängt."
+			else
+				
+				set meldung to "Abgebrochen"
+			end if
 			
-			set meldung to "Abgebrochen"
-		end if
-		
+		end tell
 	else if item 1 of choosen_Script is equal to "Titel einfügen" then
 		log "Starte mit Schleife " & item 1 of choosen_Script
 		
@@ -934,68 +958,6 @@ else
 			
 		end tell
 		
-	else if item 1 of choosen_Script is equal to "Zeige weitere Alben - alt" then
-		
-		log "Starte mit Schleife " & item 1 of choosen_Script
-		
-		tell application "Photos"
-			activate
-			-- Add the photo you want to search for to a top level album as the first item in the album
-			
-			set resultcaption to "Suche nach: "
-			try
-				
-				set sel to selection
-				if sel is {} then error "The selection  is empty" -- no selection
-				
-			on error errTexttwo number errNumtwo
-				display dialog "No photos selected " & errNumtwo & return & errTexttwo
-				return
-			end try
-			
-			set imagename to "unknown filename"
-			try
-				set target to item 1 of sel -- the image to seach for
-				tell target
-					set imagename to the filename of target
-				end tell
-			on error errTexttwo number errNumtwo
-				display dialog "Cannot get the filename of the first image: " & errNumtwo & return & errTexttwo
-			end try
-			set resultcaption to (resultcaption & imagename)
-			
-			-- set sel to selection
-			if sel is {} then return -- no selection
-			try
-				set item_id to id of item 1 of sel
-			on error errText number errNum
-				display dialog "Error: cannot get the image ID" & errNum & return & errText & "Trying again"
-				
-				try
-					delay 2
-					set item_id to id of item 1 of sel
-				on error errTexttwo number errNumtwo
-					display dialog "Skipping image due to repeated error: " & errNumtwo & return & errTexttwo
-					error "giving up"
-					return
-				end try --second attempt
-			end try
-			
-		end tell
-		
-		set theseNames to my find_folders(item_id)
-		
-		if theseNames is not {} then
-			set {oTid, text item delimiters} to {text item delimiters, return}
-			set {t, text item delimiters} to {theseNames as string, oTid}
-			
-		else
-			set t to "No album"
-		end if
-		activate
-		
-		set meldung to resultcaption & ", gefunden in folgenden Alben:" & return & t as string
-		
 	else if item 1 of choosen_Script is equal to "GPS Daten hinzufügen" then
 		
 		-- ergänzt GPS Daten zu Fotos
@@ -1096,7 +1058,7 @@ else
 			end tell
 			
 		end if
-	else if item 1 of choosen_Script is equal to "Zeige weitere Alben - neu" then
+	else if item 1 of choosen_Script is equal to "Zeige weitere Alben" then
 		log "Starte mit Schleife " & item 1 of choosen_Script
 		
 		tell application "Photos"
@@ -1304,17 +1266,11 @@ on find_folder_recursive(thisId, actualFolder, fullPath, sammlung)
 					set tmp_path_complete to (tmp_path_complete & name of the_item as string) & "/" & name of actualAlbum as string
 					set end of sammlung to tmp_path_complete
 					log tmp_path_complete
-					
 				end repeat
-				
 			end if
 			set sammlung to my find_folder_recursive(thisId, the_item, tempPath, sammlung)
-			
 		end repeat
-		
-		
 	end tell
-	
 	return sammlung
 end find_folder_recursive
 
@@ -1451,7 +1407,6 @@ on find_folders(thisId)
 	end tell
 	return theseNamesFunct
 end find_folders
-
 
 on replace_chars(this_text, search_string, replacement_string)
 	set AppleScript's text item delimiters to the search_string
