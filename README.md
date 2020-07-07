@@ -8,17 +8,17 @@ Vielen Dank insbesondere an https://discussions.apple.com/profile/léonie - sein
 
 ## Installieren
 
-# Script/Programm erstellen
+### Script/Programm erstellen
 
-# in Photos über Automator einbinden
+### in Photos über Automator einbinden
 
 ## Übersicht über die Scripte
 
-# Voraussetzung
+### Voraussetzung
 
 Vor dem Start der Scripte müssen immer alle Fotos selektiert sein, auf die das Script angewendet werden soll.
 
-# In Album kopieren
+### In Album kopieren
 
 Dieses Script ermöglicht es eine bliebig lange Liste an Alben zu definieren. Es können mehrere Alben selektiert werden. Alle selektierten Photos werden dann in das entsprechende Album kopiert.
 
