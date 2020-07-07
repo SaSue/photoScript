@@ -7,8 +7,9 @@ set myLocations to {{"Clipboard", 0, 0}, {"Brandenburger Tor", 52.5164, 13,3780}
 -- fragen welches Script ausgeführt werden soll
 set meldung to "" as string
 set meldung_title to "" as string
-set script_liste to {"--- Fotos kopieren ---", "In Album kopieren", "In Album kopieren über auswählen/erstellen", "--- Meta Daten bearbeiten ---", "Titel einfügen", "Beschreibung aus Album", "Beschreibung einfügen", "Schlagwörter ergänzen", "--- GPS Daten bearbeiten ---", "GPS Daten hinzufügen", "Kopiere GPS auf anderes Foto", "--- Datum bearbeiten ---", "Kopiere Datum auf anderes Foto", "Datum aus Dateiname", "--- Konvertieren ---", "AVI nach mp4 konvertieren", "TIFF/PSD nach jpg konvertieren", "--- Alben suchen ---", "Zeige weitere Alben", "--- Sortieren ---", "Nach Jahren sortieren", "Nach Dateigröße sortieren"}
+set script_liste to {"--- Fotos kopieren ---", "In Album kopieren", "In Album kopieren über auswählen/erstellen", "--- Meta Daten bearbeiten ---", "Titel einfügen", "Beschreibung einfügen", "Schlagwörter ergänzen", "--- GPS Daten bearbeiten ---", "GPS Daten hinzufügen", "Kopiere GPS auf anderes Foto", "--- Datum bearbeiten ---", "Kopiere Datum auf anderes Foto", "Datum aus Dateiname", "--- Konvertieren ---", "AVI nach mp4 konvertieren", "TIFF/PSD nach jpg konvertieren", "--- Alben suchen ---", "Zeige weitere Alben", "--- Sortieren ---", "Nach Jahren sortieren", "Nach Dateigröße sortieren"}
 
+-- Script auswählen
 set choosen_Script to choose from list script_liste with prompt "Wählen Sie das auszufüherende Script:"
 
 if (choosen_Script is false) or (item 1 of choosen_Script starts with "---") then -- falls nichts ausgewählt wurde
@@ -17,41 +18,18 @@ if (choosen_Script is false) or (item 1 of choosen_Script starts with "---") the
 	set meldung_title to "Abbruch"
 	
 else
-	set meldung_title to item 1 of choosen_Script -- Titel für die Meldung festelegen
+	set meldung_title to item 1 of choosen_Script -- Titel für die Meldung festelegen auf das ausgewählte Script
 	
 	log "Gewähltes Script: "
 	log choosen_Script
 	
-	if item 1 of choosen_Script is equal to "Beschreibung aus Album" then
-		log "Starte mit Schleife " & item 1 of choosen_Script
-		tell application "Photos"
-			activate
-			set meldung to "Beschreibung:" & return
-			set sel to selection
-			
-			if sel is {} then error "The selection  is empty" -- no selection
-			
-			
-			set imageList to {}
-			
-			set actualImage to item 1 of sel
-			
-			set actualAlbum to sel
-			display dialog name of actualAlbum as string
-			repeat with source in sel
-				set meldung to (meldung & filename of source & return)
-				set end of imageList to source
-			end repeat
-		end tell
-	else if item 1 of choosen_Script is equal to "In Album kopieren über auswählen/erstellen" then
+	if item 1 of choosen_Script is equal to "In Album kopieren über auswählen/erstellen" then
 		log "Starte mit Schleife " & item 1 of choosen_Script
 		
 		set my_album to my find_album_selector("initalize", "")
 		
-		
 		tell application "Photos"
 			activate
-			-- Add the photo you want to search for to a top level album as the first item in the album
 			
 			try
 				set meldung to "Datei(en):" & return
@@ -62,7 +40,6 @@ else
 				display dialog "No photos selected " & errNumtwo & return & errTexttwo
 				return
 			end try
-			
 			
 			set imageList to {}
 			
@@ -164,7 +141,7 @@ else
 				return
 			end if
 			
-			set theDialogText to "Bitte Qualität auswählen"
+			set theDialogText to ("Bitte Qualität auswählen - aktuelle Dateigröße: " & ((round (filesizeSource * 10) / 1024 / 1024)) / 10 as string) & " MB"
 			display dialog theDialogText buttons {"Low", "High"} default button "High"
 			if button returned of result = "Low" then
 				set quality to "Low"
@@ -179,7 +156,7 @@ else
 			with timeout of (720 * 60) seconds
 				tell application "Finder"
 					
-					set OrdnerInhalt to (every file of folder sourceFolder whose name extension is "avi")
+					set OrdnerInhalt to (every file of folder sourceFolder whose name extension is in {"avi", "mov"})
 					set dateiListe to (every item of OrdnerInhalt) as list
 					
 					--Repeat for all files in above folder
@@ -248,7 +225,7 @@ else
 							-- AVI aus den Keywords entfernen
 							set theList to keywordsSource
 							
-							set itemsToDelete to {"AVI"}
+							set itemsToDelete to {"AVI", "MOV"}
 							
 							set cleanList to {}
 							
@@ -433,7 +410,14 @@ else
 			if currentSelection is {} then
 				error "The selection  is empty" -- no selection
 			else
-				set result to display dialog "Bitte Schlagwörter für die Fotos eingeben:" default answer (the clipboard as text) with icon note buttons {"Cancel", "Replace", "Append"} default button "Append"
+				
+				-- clipboard auslesen, wenn fehler weil Clipboard kein Text set to ""
+				try
+					set defaultText to the clipboard as text
+				on error errTexttwo number errNumtwo
+					if errNumtwo is -1700 then set defaultText to ""
+				end try
+				set result to display dialog "Bitte Schlagwörter für die Fotos eingeben:" default answer (defaultText) with icon note buttons {"Cancel", "Replace", "Append"} default button "Append"
 				copy the result to {button returned:buttonPressed, text returned:keyWordString}
 				
 				set keywordsToApply to my splitText(keyWordString, ",")
@@ -631,7 +615,14 @@ else
 		tell application "Photos"
 			activate
 			
-			set result to display dialog "Bitte Beschreibung für die Fotos eingeben:" default answer (the clipboard as text) with icon note buttons {"Cancel", "Replace", "Append"} default button "Append"
+			-- clipboard auslesen, wenn fehler weil Clipboard kein Text set to ""
+			try
+				set defaultText to the clipboard as text
+			on error errTexttwo number errNumtwo
+				if errNumtwo is -1700 then set defaultText to ""
+			end try
+			
+			set result to display dialog "Bitte Beschreibung für die Fotos eingeben:" default answer (defaultText) with icon note buttons {"Cancel", "Replace", "Append"} default button "Append"
 			copy the result to {button returned:buttonPressed, text returned:theResponse}
 			set kommentar to theResponse
 			try
@@ -684,7 +675,14 @@ else
 	else if item 1 of choosen_Script is equal to "Titel einfügen" then
 		log "Starte mit Schleife " & item 1 of choosen_Script
 		
-		set dialogTitlePreFix to display dialog "Welcher Titel?" default answer (the clipboard as text)
+		-- clipboard auslesen, wenn fehler weil Clipboard kein Text set to ""
+		try
+			set defaultText to the clipboard as text
+		on error errTexttwo number errNumtwo
+			if errNumtwo is -1700 then set defaultText to ""
+		end try
+		
+		set dialogTitlePreFix to display dialog "Welcher Titel?" default answer (defaultText)
 		set string_input to text returned of dialogTitlePreFix
 		set lengthSize to length of text returned of dialogTitlePreFix
 		set titlePreFix to "" as string
@@ -840,8 +838,31 @@ else
 					
 					set next_image to item i of imageSel
 					
+					set cleanList to missing value
+					
+					tell next_image -- lese keywords ein, prüfe ob "Ohne Standort" enthalten ist und entferne es
+						set keywordsSource to get the keywords
+					end tell
+					
+					if keywordsSource is not equal to missing value then
+						
+						-- "Ohne Standort" aus den Keywords entfernen
+						set theList to keywordsSource
+						
+						set itemsToDelete to {"Ohne Standort"}
+						
+						set cleanList to {}
+						
+						repeat with i_keywords from 1 to count theList
+							if {theList's item i_keywords} is not in itemsToDelete then set cleanList's end to theList's item i_keywords
+						end repeat
+						
+					end if
+					
 					tell next_image
 						set its location to {lati, longi}
+						if cleanList is not equal to missing value then set its keywords to cleanList
+						
 						-- if withAlti then -- photo has altitude tag
 						-- set its altitude to alti
 						-- end if
@@ -1020,13 +1041,10 @@ else
 						log lati as string
 						log longi as string
 						
-						
-						
 					end if
 				end repeat
 			end if
 			set meldung to meldung & ((mySelection & " mit Koordinaten " & lati as string) & "/" & longi as string) & return
-			
 			
 			tell application "Photos"
 				activate
@@ -1053,6 +1071,26 @@ else
 						display dialog "Konnte nicht eingefügt werden " & errNumtwo & return & errTexttwo
 						return
 					end try
+					
+					tell source -- lese keywords ein, prüfe ob "Ohne Standort" enthalten ist und entferne es
+						set keywordsSource to get the keywords
+					end tell
+					if keywordsSource is not equal to missing value then
+						
+						-- "Ohne Standort" aus den Keywords entfernen
+						set theList to keywordsSource
+						
+						set itemsToDelete to {"Ohne Standort"}
+						
+						set cleanList to {}
+						
+						repeat with i_keywords from 1 to count theList
+							if {theList's item i_keywords} is not in itemsToDelete then set cleanList's end to theList's item i_keywords
+						end repeat
+						tell source
+							if cleanList is not equal to missing value then set its keywords to cleanList
+						end tell
+					end if
 				end repeat
 				set meldung to meldung & "für " & i_count & " Bilder gesetzt."
 			end tell
