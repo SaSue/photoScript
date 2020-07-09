@@ -59,7 +59,6 @@ else
 				set meldung to meldung & "hinzugefügt."
 			end if
 		end tell
-		
 	else if item 1 of choosen_Script is equal to "AVI nach mp4 konvertieren" then
 		log "Starte mit Schleife " & item 1 of choosen_Script
 		
@@ -69,191 +68,384 @@ else
 		tell application "Photos"
 			activate
 			-- Add the photo you want to search for to a top level album as the first item in the album
+			try
+				set sel to selection
+				if sel is {} then error "The selection  is empty" -- no selection
+				set length_of_sel to length of sel as number
+				
+				if length_of_sel > 1 then
+					set theDialogText to ("Es werden " & length_of_sel as string) & " Videos konvertiert. " & return & "Bitte Qualität auswählen"
+					display dialog theDialogText buttons {"Low", "High"} default button "High"
+					if button returned of result = "Low" then
+						set quality to "Low"
+					else if button returned of result = "High" then
+						set quality to "High"
+					end if
+				else
+					set quality to ""
+				end if
+			on error errTexttwo number errNumtwo
+				display dialog "No photos selected " & errNumtwo & return & errTexttwo
+				return
+			end try
+		end tell
+		
+		repeat with int_sel from 1 to length_of_sel
+			
+			set meldung to ""
+			tell application "Photos"
+				activate
+				set export_list to {}
+				set end of export_list to item int_sel of sel
+				export export_list to sourceFolder with using originals
+				-- Add the photo you want to search for to a top level album as the first item in the album
+				set imagename to "unknown filename"
+				set favoriteSource to false
+				try
+					set target to item int_sel of sel -- the image to seach for
+					tell target
+						set imagename to the filename of target
+						set loc to get the location --retrieve longitude and latitude as list
+						set alti to get the altitude -- retrieve the altitude
+						set keywordsSource to get the keywords
+						set nameSource to get name
+						set descriptionSource to get description
+						set favoriteSource to get favorite
+						set dateSource to date of target
+						set latiSource to (the first item of loc) -- as number
+						set longiSource to (the second item of loc) -- as number
+						set filesizeSource to get size
+					end tell
+					
+					set meldung to meldung & "Datei: " & imagename & return
+					set meldung to (meldung & "Mit Dateigröße: " & ((round (filesizeSource * 10) / 1024 / 1024)) / 10 as string) & " MB" & return
+					set meldung to meldung & "exportiert" & return
+					
+					
+				on error errTexttwo number errNumtwo
+					display dialog "Cannot get the filename of the first image: " & errNumtwo & return & errTexttwo
+				end try
+				
+				-- set sel to selection
+				if sel is {} then return -- no selection
+				try
+					set thisId to id of item int_sel of sel
+				on error errText number errNum
+					display dialog "Error: cannot get the image ID" & errNum & return & errText & "Trying again"
+					
+					try
+						delay 2
+						set thisId to id of int_sel of sel
+					on error errTexttwo number errNumtwo
+						display dialog "Skipping image due to repeated error: " & errNumtwo & return & errTexttwo
+						error "giving up"
+						return
+					end try --second attempt
+				end try
+				
+			end tell
+			
+			set theseNames to my find_folder_recursive(thisId, "initialize", {}, {})
+			tell application "Photos"
+				if theseNames is not {} then
+					activate
+					
+					if length_of_sel > 1 then
+						set theSelectedAlbum to theseNames
+						--	set theSelectedAlbum to choose from list theAlbumChoices with prompt "Album für den Import der konvertierten Datei:" with multiple selections allowed
+					else
+						set theAlbumChoices to theseNames
+						set theSelectedAlbum to choose from list theAlbumChoices with prompt "Album für den Import der konvertierten Datei:" with multiple selections allowed
+						set theDialogText to ("Bitte Qualität auswählen - aktuelle Dateigröße: " & ((round (filesizeSource * 10) / 1024 / 1024)) / 10 as string) & " MB"
+						display dialog theDialogText buttons {"Low", "High"} default button "High"
+						if button returned of result = "Low" then
+							set quality to "Low"
+						else if button returned of result = "High" then
+							set quality to "High"
+						end if
+					end if
+				else
+					set t to "No album"
+					return
+				end if
+				
+				set theDialogText to ("Bitte Qualität auswählen - aktuelle Dateigröße: " & ((round (filesizeSource * 10) / 1024 / 1024)) / 10 as string) & " MB"
+				--	display dialog theDialogText buttons {"Low", "High"} default button "High"
+				
+				set quality to "High"
+				
+				
+			end tell
+			if theSelectedAlbum is false then
+				return
+			else
+				
+				with timeout of (720 * 60) seconds
+					tell application "Finder"
+						
+						set OrdnerInhalt to (every file of folder sourceFolder whose name extension is in {"avi", "mov"})
+						set dateiListe to (every item of OrdnerInhalt) as list
+						
+						--Repeat for all files in above folder
+						repeat with datei in dateiListe
+							
+							try
+								
+								--Assemble original and new file paths
+								set origFilepath to quoted form of POSIX path of (datei as alias)
+								set newFilepath to (characters 1 thru -5 of origFilepath as string) & "mp4'"
+								--Start the conversion
+								
+								
+								if quality is equal to "Low" then
+									set shellCommand to "nice /Applications/HandBrakeCLI -i " & origFilepath & " -o " & newFilepath & " -e x264 -q 20 -B 160 ;"
+								else if quality is equal to "High" then
+									set shellCommand to "nice /Applications/HandBrakeCLI -i " & origFilepath & " -o " & newFilepath & " -e x264 -b 4000 -a 1 -E faac -B 160 -R 48 -6 dpl2 -f mp4 –crop 0:0:0:0 -x level=40:ref=2:mixed-refs:bframes=3:weightb:subme=9:direct=auto:b-pyramid:me=umh:analyse=all:no-fast-pskip:filter=-2,-1 ;"
+								end if
+								do shell script shellCommand
+								
+								set shellCommand to "rm -f " & origFilepath
+								do shell script shellCommand
+							on error errmsg
+								--Set the label to red to indicate failure
+								display dialog errmsg as text
+							end try
+						end repeat
+					end tell
+				end timeout
+				
+				tell application "Photos"
+					activate
+					set meldungAlben to "" as string
+					
+					repeat with d from 1 to the length of theSelectedAlbum
+						
+						set meldungAlben to meldungAlben & item d of theSelectedAlbum & return
+						set selectedAlbum to my find_album(item d of theSelectedAlbum)
+						
+						-- Add the photo you want to search for to a top level album as the first item in the album
+						set imageList to {}
+						set extensionsList to {"mp4"}
+						tell application "Finder" to set theFiles to (every file of folder sourceFolder whose name extension is extensionsList)
+						
+						set imageList to {}
+						repeat with i from 1 to number of items in theFiles
+							set this_item to item i of theFiles as alias
+							set the end of imageList to this_item
+						end repeat
+						
+						if d = 1 then -- im ersten Durchgang importieren in das Album
+							set importedFileList to import imageList into selectedAlbum
+						else if d > 1 then -- in allen nachfolgenden Durchgängen dem Album zuweisen
+							add importedFileList to selectedAlbum
+						end if
+						
+					end repeat
+					set shellCommand to "rm -f " & newFilepath
+					do shell script shellCommand
+					
+					repeat with importedFile in importedFileList
+						tell importedFile
+							if latiSource is not equal to missing value and longiSource is not equal to missing value then set its location to {latiSource, longiSource}
+							if keywordsSource is not equal to missing value then
+								
+								-- AVI aus den Keywords entfernen
+								set theList to keywordsSource
+								
+								set itemsToDelete to {"AVI", "MOV"}
+								
+								set cleanList to {}
+								
+								repeat with i_keywords from 1 to count theList
+									if {theList's item i_keywords} is not in itemsToDelete then set cleanList's end to theList's item i_keywords
+								end repeat
+								
+								if cleanList is not equal to missing value then set its keywords to cleanList
+							end if
+							if nameSource is not equal to missing value then set its name to nameSource
+							if descriptionSource is not equal to missing value then set its description to descriptionSource
+							set its favorite to favoriteSource
+							
+							set imagename to the filename of importedFile
+							set filesizeSource to get size
+						end tell
+						set date of importedFile to dateSource
+					end repeat
+					set meldung to meldung & "Datei: " & imagename & return
+					set meldung to (meldung & "Mit Dateigröße: " & ((round (filesizeSource * 10) / 1024 / 1024)) / 10 as string) & " MB" & return
+					set meldung to meldung & "importiert in Alben:" & return
+					
+					set meldung to meldung & meldungAlben
+					
+				end tell
+			end if
+			
+		end repeat
+		if length_of_sel > 1 then set meldung to "Es wurden " & length_of_sel & " Alben konvertiert."
+		
+	else if item 1 of choosen_Script is equal to "TIFF/PSD nach jpg konvertieren" then
+		log "Starte mit Schleife " & item 1 of choosen_Script
+		
+		set sourceFolder to choose folder with prompt "Wählen Sie einen temporären Ordner für die Konvertierung aus:" with multiple selections allowed
+		set dest_folder to sourceFolder
+		tell application "Photos"
+			activate
+			-- Add the photo you want to search for to a top level album as the first item in the album
 			
 			try
 				
 				set sel to selection
 				if sel is {} then error "The selection  is empty" -- no selection
+				set length_of_sel to length of sel as number
 				
-				export sel to sourceFolder with using originals
 				
 			on error errTexttwo number errNumtwo
 				display dialog "No photos selected " & errNumtwo & return & errTexttwo
 				return
 			end try
-			
-			set imagename to "unknown filename"
-			set favoriteSource to false
-			try
-				set target to item 1 of sel -- the image to seach for
-				tell target
-					set imagename to the filename of target
-					set loc to get the location --retrieve longitude and latitude as list
-					set alti to get the altitude -- retrieve the altitude
-					set keywordsSource to get the keywords
-					set nameSource to get name
-					set descriptionSource to get description
-					set favoriteSource to get favorite
-					set dateSource to date of target
-					set latiSource to (the first item of loc) -- as number
-					set longiSource to (the second item of loc) -- as number
-					set filesizeSource to get size
-				end tell
-				
-				set meldung to meldung & "Datei: " & imagename & return
-				set meldung to (meldung & "Mit Dateigröße: " & ((round (filesizeSource * 10) / 1024 / 1024)) / 10 as string) & " MB" & return
-				set meldung to meldung & "exportiert" & return
-				
-				
-			on error errTexttwo number errNumtwo
-				display dialog "Cannot get the filename of the first image: " & errNumtwo & return & errTexttwo
-			end try
-			
-			-- set sel to selection
-			if sel is {} then return -- no selection
-			try
-				set thisId to id of item 1 of sel
-			on error errText number errNum
-				display dialog "Error: cannot get the image ID" & errNum & return & errText & "Trying again"
-				
-				try
-					delay 2
-					set thisId to id of item 1 of sel
-				on error errTexttwo number errNumtwo
-					display dialog "Skipping image due to repeated error: " & errNumtwo & return & errTexttwo
-					error "giving up"
-					return
-				end try --second attempt
-			end try
-			
 		end tell
 		
-		set theseNames to my find_folder_recursive(thisId, "initialize", {}, {})
-		tell application "Photos"
-			if theseNames is not {} then
+		repeat with int_sel from 1 to length_of_sel
+			
+			tell application "Photos"
 				activate
 				
-				set theAlbumChoices to theseNames
-				set theSelectedAlbum to choose from list theAlbumChoices with prompt "Album für den Import der konvertierten Datei:" with multiple selections allowed
+				set exportlist to {}
+				set end of exportlist to item int_sel of sel
+				export exportlist to sourceFolder
 				
+				set imagename to "unknown filename"
+				set favoriteSource to false
+				try
+					set target to item int_sel of sel -- the image to seach for
+					tell target
+						set imagename to the filename of target
+						set loc to get the location --retrieve longitude and latitude as list
+						set alti to get the altitude -- retrieve the altitude
+						set keywordsSource to get the keywords
+						set nameSource to get name
+						set descriptionSource to get description
+						set favoriteSource to get favorite
+						set dateSource to date of target
+						set latiSource to (the first item of loc) -- as number
+						set longiSource to (the second item of loc) -- as number
+						set filesizeSource to get size
+					end tell
+					
+					set meldung to meldung & "Datei: " & imagename & return
+					set meldung to (meldung & "Mit Dateigröße: " & ((round (filesizeSource * 10) / 1024 / 1024)) / 10 as string) & " MB" & return
+					set meldung to meldung & "exportiert" & return
+					
+				on error errTexttwo number errNumtwo
+					display dialog "Cannot get the filename of the first image: " & errNumtwo & return & errTexttwo
+				end try
+			end tell
+			
+			tell application "Photos"
+				-- set sel to selection
+				
+				try
+					set thisId to id of (item int_sel of sel)
+				on error errText number errNum
+					display dialog "Error: cannot get the image ID" & errNum & return & errText & "Trying again"
+					
+					try
+						delay 2
+						set thisId to id of (item int_sel of sel)
+					on error errTexttwo number errNumtwo
+						display dialog "Skipping image due to repeated error: " & errNumtwo & return & errTexttwo
+						error "giving up"
+						return
+					end try --second attempt
+				end try
+				
+				set theseNames to my find_folder_recursive(thisId, "initialize", {}, {})
+			end tell
+			
+			if theseNames is not {} then
+				
+				if length_of_sel > 1 then
+					set theSelectedAlbum to theseNames
+				else
+					tell application "Photos"
+						activate
+						set theAlbumChoices to theseNames
+						set theSelectedAlbum to choose from list theAlbumChoices with prompt "Album für den Import der konvertierten Datei:" with multiple selections allowed
+					end tell
+				end if
 			else
 				set t to "No album"
 				return
 			end if
 			
-			set theDialogText to ("Bitte Qualität auswählen - aktuelle Dateigröße: " & ((round (filesizeSource * 10) / 1024 / 1024)) / 10 as string) & " MB"
-			display dialog theDialogText buttons {"Low", "High"} default button "High"
-			if button returned of result = "Low" then
-				set quality to "Low"
-			else if button returned of result = "High" then
-				set quality to "High"
-			end if
-		end tell
-		if theSelectedAlbum is false then
-			return
-		else
+			log ((count of the theSelectedAlbum) as string) & " Alben gefunden"
 			
-			with timeout of (720 * 60) seconds
-				tell application "Finder"
-					
-					set OrdnerInhalt to (every file of folder sourceFolder whose name extension is in {"avi", "mov"})
-					set dateiListe to (every item of OrdnerInhalt) as list
-					
-					--Repeat for all files in above folder
-					repeat with datei in dateiListe
+			if theSelectedAlbum is false then
+				return
+			else
+				tell application "Photos"
+					set meldungAlben to "" as string
+					repeat with i from 1 to the length of theSelectedAlbum
 						
-						try
-							
-							--Assemble original and new file paths
-							set origFilepath to quoted form of POSIX path of (datei as alias)
-							set newFilepath to (characters 1 thru -5 of origFilepath as string) & "mp4'"
-							--Start the conversion
-							
-							
-							if quality is equal to "Low" then
-								set shellCommand to "nice /Applications/HandBrakeCLI -i " & origFilepath & " -o " & newFilepath & " -e x264 -q 20 -B 160 ;"
-							else if quality is equal to "High" then
-								set shellCommand to "nice /Applications/HandBrakeCLI -i " & origFilepath & " -o " & newFilepath & " -e x264 -b 4000 -a 1 -E faac -B 160 -R 48 -6 dpl2 -f mp4 –crop 0:0:0:0 -x level=40:ref=2:mixed-refs:bframes=3:weightb:subme=9:direct=auto:b-pyramid:me=umh:analyse=all:no-fast-pskip:filter=-2,-1 ;"
-							end if
-							do shell script shellCommand
-							
-							set shellCommand to "rm -f " & origFilepath
-							do shell script shellCommand
-						on error errmsg
-							--Set the label to red to indicate failure
-							display dialog errmsg as text
-						end try
-					end repeat
-				end tell
-			end timeout
-			
-			tell application "Photos"
-				activate
-				set meldungAlben to "" as string
-				
-				repeat with d from 1 to the length of theSelectedAlbum
-					
-					set meldungAlben to meldungAlben & item d of theSelectedAlbum & return
-					set selectedAlbum to my find_album(item d of theSelectedAlbum)
-					
-					-- Add the photo you want to search for to a top level album as the first item in the album
-					set imageList to {}
-					set extensionsList to {"mp4"}
-					tell application "Finder" to set theFiles to (every file of folder sourceFolder whose name extension is extensionsList)
-					
-					set imageList to {}
-					repeat with i from 1 to number of items in theFiles
-						set this_item to item i of theFiles as alias
-						set the end of imageList to this_item
-					end repeat
-					
-					if d = 1 then -- im ersten Durchgang importieren in das Album
-						set importedFileList to import imageList into selectedAlbum
-					else if d > 1 then -- in allen nachfolgenden Durchgängen dem Album zuweisen
-						add importedFileList to selectedAlbum
-					end if
-					
-				end repeat
-				set shellCommand to "rm -f " & newFilepath
-				do shell script shellCommand
-				
-				repeat with importedFile in importedFileList
-					tell importedFile
-						if latiSource is not equal to missing value and longiSource is not equal to missing value then set its location to {latiSource, longiSource}
-						if keywordsSource is not equal to missing value then
-							
-							-- AVI aus den Keywords entfernen
-							set theList to keywordsSource
-							
-							set itemsToDelete to {"AVI", "MOV"}
-							
-							set cleanList to {}
-							
-							repeat with i_keywords from 1 to count theList
-								if {theList's item i_keywords} is not in itemsToDelete then set cleanList's end to theList's item i_keywords
-							end repeat
-							
-							if cleanList is not equal to missing value then set its keywords to cleanList
+						set meldungAlben to meldungAlben & item i of theSelectedAlbum & return
+						set selectedAlbum to my find_album(item i of theSelectedAlbum)
+						
+						activate
+						
+						-- Add the photo you want to search for to a top level album as the first item in the album
+						
+						--	tell application "Finder" to set importList to every file of importFolder whose name extension is "mp4"
+						set imageList to {}
+						set extensionsList to {"jpeg"}
+						tell application "Finder" to set theFiles to (every file of folder sourceFolder whose name extension is extensionsList)
+						
+						set imageList to {}
+						repeat with i2 from 1 to number of items in theFiles
+							set this_item to item i2 of theFiles as alias
+							set the end of imageList to this_item
+							log "Durchgang " & i & ": " & this_item
+						end repeat
+						
+						if i = 1 then
+							set importedFileList to import imageList into selectedAlbum
+						else if i > 1 then
+							add importedFileList to selectedAlbum
 						end if
-						if nameSource is not equal to missing value then set its name to nameSource
-						if descriptionSource is not equal to missing value then set its description to descriptionSource
-						set its favorite to favoriteSource
-						
-						set imagename to the filename of importedFile
-						set filesizeSource to get size
-					end tell
-					set date of importedFile to dateSource
-				end repeat
-				set meldung to meldung & "Datei: " & imagename & return
-				set meldung to (meldung & "Mit Dateigröße: " & ((round (filesizeSource * 10) / 1024 / 1024)) / 10 as string) & " MB" & return
-				set meldung to meldung & "importiert in Alben:" & return
-				
-				set meldung to meldung & meldungAlben
-				
-			end tell
-		end if
+					end repeat
+					-- set shellCommand to "rm -f " & newFilepath
+					-- do shell script shellCommand
+					
+					tell application "Finder" to delete item 1 of theFiles
+					
+					repeat with importedFile in importedFileList
+						tell importedFile
+							if latiSource is not equal to missing value and longiSource is not equal to missing value then set its location to {latiSource, longiSource}
+							if keywordsSource is not equal to missing value then set its keywords to keywordsSource
+							if nameSource is not equal to missing value then set its name to nameSource
+							if descriptionSource is not equal to missing value then set its description to descriptionSource
+							set its favorite to favoriteSource
+							
+							set imagename to the filename of importedFile
+							set filesizeSource to get size
+							
+						end tell
+						set date of importedFile to dateSource
+					end repeat
+					
+					
+					set meldung to meldung & "Datei: " & imagename & return
+					set meldung to (meldung & "Mit Dateigröße: " & ((round (filesizeSource * 10) / 1024 / 1024)) / 10 as string) & " MB" & return
+					set meldung to meldung & "importiert in Alben:" & return
+					
+					set meldung to meldung & meldungAlben
+					
+				end tell
+			end if
+		end repeat
 		
-	else if item 1 of choosen_Script is equal to "TIFF/PSD nach jpg konvertieren" then
+		if length_of_sel > 1 then set meldung to "Es wurden " & length_of_sel & " Bilder konvertiert"
+		
+	else if item 1 of choosen_Script is equal to "TIFF/PSD nach jpg konvertieren_ALT" then
 		log "Starte mit Schleife " & item 1 of choosen_Script
 		
 		set sourceFolder to choose folder with prompt "Wählen Sie einen temporären Ordner für die Konvertierung aus:" with multiple selections allowed
@@ -398,10 +590,8 @@ else
 			end tell
 		end if
 		
-		
 	else if item 1 of choosen_Script is equal to "Schlagwörter ergänzen" then
 		log "Starte mit Schleife " & item 1 of choosen_Script
-		
 		
 		tell application "Photos"
 			set actionString to "" as string
@@ -1376,76 +1566,6 @@ on list_unique(the_list)
 	
 end list_unique
 
-on find_folders(thisId)
-	tell application "Photos"
-		activate
-		set theseNamesFunct to {}
-		
-		set theseNamesTemp to name of (albums whose id of media items contains thisId)
-		if theseNamesTemp is not {} then
-			set end of theseNamesFunct to theseNamesTemp
-		end if
-		
-		set topFolderList to folders
-		
-		repeat with topFolder in topFolderList
-			set tempTopFolder to name of topFolder
-			set theseNamesTemp to name of (albums of topFolder whose id of media items contains thisId)
-			if theseNamesTemp is not {} then
-				repeat with itemTemp in theseNamesTemp
-					set end of theseNamesFunct to tempTopFolder & "/" & itemTemp
-				end repeat
-			end if
-			
-			set subFolderList to every folder of topFolder
-			
-			repeat with subfolder in subFolderList
-				set tempSubFolder to name of subfolder
-				
-				
-				set theseNamesTemp to name of (albums of subfolder whose id of media items contains thisId)
-				if theseNamesTemp is not {} then
-					repeat with itemTemp in theseNamesTemp
-						set end of theseNamesFunct to tempTopFolder & "/" & tempSubFolder & "/" & itemTemp
-					end repeat
-				end if
-				
-				
-				set secondSubFolderList to every folder of subfolder
-				
-				repeat with secondSubFolder in secondSubFolderList
-					set tempSecondSubFolder to name of secondSubFolder
-					
-					set theseNamesTemp to name of (albums of secondSubFolder whose id of media items contains thisId)
-					if theseNamesTemp is not {} then
-						repeat with itemTemp in theseNamesTemp
-							set end of theseNamesFunct to tempTopFolder & "/" & tempSubFolder & "/" & tempSecondSubFolder & "/" & itemTemp
-						end repeat
-					end if
-					
-					
-					set thirdSubFolderList to every folder of secondSubFolder
-					
-					repeat with thirdSubFolder in thirdSubFolderList
-						set tempThirdSubFolder to name of thirdSubFolder
-						
-						set theseNamesTemp to name of (albums of thirdSubFolder whose id of media items contains thisId)
-						if theseNamesTemp is not {} then
-							repeat with itemTemp in theseNamesTemp
-								set end of theseNamesFunct to tempTopFolder & "/" & tempSubFolder & "/" & tempSecondSubFolder & "/" & tempThirdSubFolder & "/" & itemTemp
-							end repeat
-						end if
-					end repeat
-					
-				end repeat
-				
-			end repeat
-			
-		end repeat
-	end tell
-	return theseNamesFunct
-end find_folders
-
 on replace_chars(this_text, search_string, replacement_string)
 	set AppleScript's text item delimiters to the search_string
 	set the item_list to every text item of this_text
@@ -1453,4 +1573,4 @@ on replace_chars(this_text, search_string, replacement_string)
 	set this_text to the item_list as string
 	set AppleScript's text item delimiters to ""
 	return this_text
-	end replace_chars
+end replace_chars
