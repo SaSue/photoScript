@@ -187,17 +187,19 @@ https://handbrake.fr/downloads2.php
 Dieses Script konvertiert ein Video in einem alten Format (bspw. AVI mit Codec Motion JPEG OpenDML) wie es ältere Kompaktkameras erzeugt haben/erzeugen direkt in eine MP4 mit Codec H.264. Diese sind wesentlich kleiner *und* kompatibler.
 Es werden alle Metadaten übernommen.
 Während der Konvertierung müssen Sie einen Tempordner angeben. Dieser muss **zwingend** leer sein.
-Außerdem werden alle Ordner angezeigt in dem das Video aktuell liegt und Sie müssen auswählen, in welchen es danach wieder importiert werden soll.
-Schlussendlich können Sie noch die Qualität auswählen LOW oder HIGH - gibt es Unterschiede - schwer zu sagen. Meist sollte LOW reichen.
+Wird ein Video ausgewählt, werden alle Ordner angezeigt in dem das Video aktuell liegt und Sie müssen auswählen, in welchen es danach wieder importiert werden soll.
+Werden mehrere Videos ausgewählt, werden alle exportiert und konvertiert. Die Videos werden dabei in die gleichen Alben importiert, in denen sie vorher enthalten waren.
+Schlussendlich können Sie noch die Qualität auswählen LOW oder HIGH - gibt es Unterschiede - schwer zu sagen. Meist sollte LOW reichen. Sind mehrer Videos slektiert, erscheint die Auswahl nur einmal und gilt für alle Videos.
 
 Special Gimmick: Wenn das Zielfoto das Schlagwort "AVI" hat, wird dieses automatisch entfernt! So lässt sich tracken, welche Video noch im alten Format ist haben.
 
 ### TIFF/PSD nach jpg konvertieren
 
-Dieses Script konvertiert ein Bild welches im PSD oder TIF Format vorliegt in JPG - in dem es es exportiert in JPG und danach direkt wieder importiert. Dies spart teils 100erte MB pro Foto
+Dieses Script konvertiert ein Bild, welches im PSD oder TIF Format vorliegt, in JPG - in dem es es exportiert in JPG und danach direkt wieder importiert. Dies spart teils 100erte MB pro Foto
 Es werden alle Metadaten übernommen.
 Während der Konvertierung müssen Sie einen Tempordner angeben. Dieser muss **zwingend** leer sein.
-Außerdem werden alle Ordner angezeigt in dem das Foto aktuell liegt und Sie müssen auswählen, in welchen es danach wieder importiert werden soll.
+Wird nur ein Foto selektoert, werden alle Alben angezeigt in dem das Foto aktuell liegt und Sie müssen auswählen, in welchen es danach wieder importiert werden soll.
+Werden mehrere Fotos ausgewählt, werden alle exportiert und konvertiert. Die Bilder werden in die gleichen Alben importiert, in denen sie vorher enthalten waren.
 
 ### Zeige weitere Alben
 
