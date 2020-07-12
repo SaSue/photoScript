@@ -895,14 +895,14 @@ else
 			
 			set i_count to number of items in sel
 			
-			if i_count < 10 then set zahlenBasis to "000" as string
-			if i_count ≥ 10 and i_count < 100 then set zahlenBasis to "00" as string
-			if i_count ≥ 100 and i_count < 1000 then set zahlenBasis to "0" as string
-			if i_count ≥ 1000 then set zahlenBasis to "" as string
-			
 			set meldung to (meldung & i_count as string) & " Titel eingefügt"
 			
 			repeat with i from 1 to i_count
+				
+				if i < 10 then set zahlenBasis to "000" as string
+				if i ≥ 10 and i < 100 then set zahlenBasis to "00" as string
+				if i ≥ 100 and i < 1000 then set zahlenBasis to "0" as string
+				if i ≥ 1000 then set zahlenBasis to "" as string
 				
 				set zahlAlsString to zahlenBasis & i as string
 				
