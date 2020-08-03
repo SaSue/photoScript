@@ -7,7 +7,7 @@ set myLocations to {{"Clipboard", 0, 0}, {"Brandenburger Tor", 52.5164, 13,3780}
 -- fragen welches Script ausgeführt werden soll
 set meldung to "" as string
 set meldung_title to "" as string
-set script_liste to {"--- Fotos kopieren ---", "In Album kopieren", "In Album kopieren über auswählen/erstellen", "--- Meta Daten bearbeiten ---", "Titel einfügen", "Beschreibung einfügen", "Schlagwörter ergänzen", "--- GPS Daten bearbeiten ---", "GPS Daten hinzufügen", "Kopiere GPS auf anderes Foto", "--- Datum bearbeiten ---", "Kopiere Datum auf anderes Foto", "Datum aus Dateiname", "--- Konvertieren ---", "AVI nach mp4 konvertieren", "TIFF/PSD nach jpg konvertieren", "--- Alben suchen ---", "Zeige weitere Alben", "--- Sortieren ---", "Nach Jahren sortieren", "Nach Dateigröße sortieren"}
+set script_liste to {"--- Fotos kopieren ---", "In Album kopieren", "In Album kopieren über auswählen/erstellen", "--- Meta Daten bearbeiten ---", "Titel einfügen", "Beschreibung einfügen", "Schlagwörter ergänzen", "Schlagwörter löschen", "--- GPS Daten bearbeiten ---", "GPS Daten hinzufügen", "Kopiere GPS auf anderes Foto", "--- Datum bearbeiten ---", "Kopiere Datum auf anderes Foto", "Datum aus Dateiname", "--- Konvertieren ---", "AVI nach mp4 konvertieren", "TIFF/PSD nach jpg konvertieren", "--- Alben suchen ---", "Zeige weitere Alben", "--- Sortieren ---", "Nach Jahren sortieren - Unterordner", "Nach Jahren sortieren - Album", "Nach Dateigröße sortieren"}
 
 -- Script auswählen
 set choosen_Script to choose from list script_liste with prompt "Wählen Sie das auszufüherende Script:"
@@ -46,6 +46,28 @@ else
 			repeat with source in sel
 				set meldung to (meldung & filename of source & return)
 				set end of imageList to source
+				
+				tell source -- lese keywords ein, prüfe ob "Ohne Standort" enthalten ist und entferne es
+					set keywordsSource to get the keywords
+				end tell
+				
+				if keywordsSource is not equal to missing value then
+					
+					-- "Ohne Standort" aus den Keywords entfernen
+					set theList to keywordsSource
+					
+					set itemsToDelete to {"Ohne Album"}
+					
+					set cleanList to {}
+					
+					repeat with i_keywords from 1 to count theList
+						if {theList's item i_keywords} is not in itemsToDelete then set cleanList's end to theList's item i_keywords
+					end repeat
+					tell source
+						if cleanList is not equal to missing value then set its keywords to cleanList
+					end tell
+				end if
+				
 			end repeat
 			
 			set meldung to (meldung & "zu: " & return)
@@ -739,7 +761,7 @@ else
 			
 		end tell
 		
-	else if item 1 of choosen_Script is equal to "Nach Jahren sortieren" then
+	else if item 1 of choosen_Script is equal to "Nach Jahren sortieren - Unterordner" then
 		log "Starte mit Schleife " & item 1 of choosen_Script
 		
 		tell application "Photos"
@@ -792,6 +814,57 @@ else
 				set end of imageList to selItem
 				
 				set selectedAlbum to album tag_s in monatFolder
+				add imageList to selectedAlbum
+				
+			end repeat
+			
+			set meldung to meldung & i_count & " Fotos wurden sortiert."
+		end tell
+		
+	else if item 1 of choosen_Script is equal to "Nach Jahren sortieren - Album" then
+		log "Starte mit Schleife " & item 1 of choosen_Script
+		
+		tell application "Photos"
+			
+			set sel to selection
+			
+			set rootFolder to folder "Nach Jahren"
+			
+			set MonatsListe to {"Januar", "Februar", "März", "April", "Mai", "Juni", "Juli", "August", "September", "Oktober", "November", "Dezember"}
+			set i_count to 0
+			repeat with selItem in sel
+				
+				set i_count to i_count + 1
+				set datum_d to the date of selItem
+				set tag_i to the day of (datum_d as date)
+				set monat_i to the ((month of (datum_d as date)) * 1) as number
+				set jahr_i to the year of (datum_d as date)
+				
+				set jahr_s to jahr_i as string
+				set monat_s to "" as string
+				set tag_s to "" as string
+				
+				
+				if monat_i < 10 then set monat_s to "0"
+				
+				set monat_s to ((monat_s & monat_i as string) & " " & item monat_i of MonatsListe)
+				
+				if tag_i < 10 then
+					set tag_s to "0" & tag_i as string
+				else
+					set tag_s to tag_i as string
+				end if
+				
+				set album_name to jahr_s & "-" & monat_s & "-" & tag_s
+				
+				if not (exists album album_name in rootFolder) then
+					make album named album_name at rootFolder
+				end if
+				
+				set imageList to {}
+				set end of imageList to selItem
+				
+				set selectedAlbum to album album_name in rootFolder
 				add imageList to selectedAlbum
 				
 			end repeat
@@ -1096,6 +1169,28 @@ else
 			repeat with source in sel
 				set meldung to (meldung & filename of source & return)
 				set end of imageList to source
+				
+				tell source -- lese keywords ein, prüfe ob "Ohne Standort" enthalten ist und entferne es
+					set keywordsSource to get the keywords
+				end tell
+				
+				if keywordsSource is not equal to missing value then
+					
+					-- "Ohne Standort" aus den Keywords entfernen
+					set theList to keywordsSource
+					
+					set itemsToDelete to {"Ohne Album"}
+					
+					set cleanList to {}
+					
+					repeat with i_keywords from 1 to count theList
+						if {theList's item i_keywords} is not in itemsToDelete then set cleanList's end to theList's item i_keywords
+					end repeat
+					tell source
+						if cleanList is not equal to missing value then set its keywords to cleanList
+					end tell
+				end if
+				
 			end repeat
 			
 			set meldung to (meldung & "zu: " & return)
@@ -1265,6 +1360,7 @@ else
 					tell source -- lese keywords ein, prüfe ob "Ohne Standort" enthalten ist und entferne es
 						set keywordsSource to get the keywords
 					end tell
+					
 					if keywordsSource is not equal to missing value then
 						
 						-- "Ohne Standort" aus den Keywords entfernen
@@ -1281,11 +1377,70 @@ else
 							if cleanList is not equal to missing value then set its keywords to cleanList
 						end tell
 					end if
+					
 				end repeat
 				set meldung to meldung & "für " & i_count & " Bilder gesetzt."
 			end tell
 			
 		end if
+		
+	else if item 1 of choosen_Script is equal to "Schlagwörter löschen" then
+		log "Starte mit Schleife " & item 1 of choosen_Script
+		tell application "Photos"
+			
+			try
+				
+				set sel to selection
+				if sel is {} then error "The selection  is empty" -- no selection
+				
+			on error errTexttwo number errNumtwo
+				display dialog "No photos selected " & errNumtwo & return & errTexttwo
+				return
+			end try
+			set keywordsSource to {}
+			repeat with source in sel
+				tell source -- lese keywords ein, prüfe ob "Ohne Standort" enthalten ist und entferne es
+					set tmpKeywordsSource to get the keywords
+				end tell
+				repeat with i_keywords from 1 to count tmpKeywordsSource
+					if tmpKeywordsSource's item i_keywords is not in keywordsSource then
+						set end of keywordsSource to tmpKeywordsSource's item i_keywords
+					end if
+				end repeat
+			end repeat
+			if keywordsSource is not equal to missing value then
+				
+				set itemsToDelete to choose from list my simple_sort(keywordsSource) with prompt "Bitte zu löschende Schlagwörter auswählen:" with multiple selections allowed
+				set str_keywords to "" as string
+				repeat with i_keywords from 1 to count itemsToDelete
+					set str_keywords to str_keywords & {itemsToDelete's item i_keywords}
+					if i_keywords is not (count itemsToDelete) then set str_keywords to str_keywords & ", " -- wenn nicht letztes Keyword dann , und Blank dazu
+				end repeat
+				set i_pic to 0
+				
+				repeat with source in sel
+					tell source
+						set keywordsSource to get the keywords
+					end tell
+					
+					set theList to keywordsSource
+					
+					set cleanList to {}
+					repeat with i_keywords from 1 to count theList
+						if {theList's item i_keywords} is not in itemsToDelete then set cleanList's end to theList's item i_keywords
+					end repeat
+					tell source
+						if cleanList is not equal to missing value then set its keywords to cleanList
+						set i_pic to i_pic + 1
+					end tell
+				end repeat
+				set meldung to meldung & "Die Schlagwörter " & return & str_keywords & return & "wurden aus " & i_pic & " Fotos entfernt."
+				
+			else
+				set meldung to meldung & "Keine Schlagwörter beim ersten Foto angegeben"
+			end if
+		end tell
+		
 	else if item 1 of choosen_Script is equal to "Zeige weitere Alben" then
 		log "Starte mit Schleife " & item 1 of choosen_Script
 		
@@ -1391,20 +1546,22 @@ on find_album_selector(actualFolder, fullPath)
 		
 		
 		if length of folderlist > 0 then
+			set end of entryList to "--- Ordner ---"
 			repeat with tempFolder in folderlist
 				
-				set end of entryList to "Folder:" & name of tempFolder
+				set end of entryList to name of tempFolder & ":Folder"
 				
 			end repeat
 		end if
 		if length of Albumlist > 0 then
+			set end of entryList to "--- Alben ---"
 			repeat with tempAlbum in Albumlist
 				
-				set end of entryList to "Album:" & name of tempAlbum
+				set end of entryList to name of tempAlbum & ":Album"
 				
 			end repeat
 		end if
-		
+		set end of entryList to "--- Erstellen ---"
 		set end of entryList to "Erstelle:Folder"
 		set end of entryList to "Erstelle:Album"
 		
@@ -1420,8 +1577,8 @@ on find_album_selector(actualFolder, fullPath)
 				else
 					make new folder named newFolder at subfolder
 				end if
-				set item 1 of ergebnis to "Folder"
-				set item 2 of ergebnis to newFolder
+				set item 2 of ergebnis to "Folder"
+				set item 1 of ergebnis to newFolder
 			else if item 2 of ergebnis = "Album" then
 				
 				set newAlbum to the text returned of (display dialog "Wie soll das Album heißen?" default answer "")
@@ -1430,21 +1587,48 @@ on find_album_selector(actualFolder, fullPath)
 				else
 					make new album named newAlbum at subfolder
 				end if
-				set item 1 of ergebnis to "Album"
-				set item 2 of ergebnis to newAlbum
+				set item 2 of ergebnis to "Album"
+				set item 1 of ergebnis to newAlbum
 			end if
 		end if
-		if item 1 of ergebnis = "Folder" then
-			set fullPath to fullPath & item 2 of ergebnis & "/"
-			set fullPath to my find_album_selector(item 2 of ergebnis, fullPath)
-		else if item 1 of ergebnis = "Album" then
-			set fullPath to fullPath & item 2 of ergebnis
+		
+		if item 2 of ergebnis = "Folder" then
+			set fullPath to fullPath & item 1 of ergebnis & "/"
+			set fullPath to my find_album_selector(item 1 of ergebnis, fullPath)
+		else if item 2 of ergebnis = "Album" then
+			set fullPath to fullPath & item 1 of ergebnis
 			return fullPath
 			
 		end if
 	end tell
 	return fullPath
 end find_album_selector
+
+on removekeyword(idSourcePicture as item, itemsToDelete)
+	tell application "Photos"
+		
+		set sourcePicture to first item of (every item whose id is idSourcePicture)
+		tell sourcePicture -- lese keywords ein, prüfe ob "Ohne Standort" enthalten ist und entferne es
+			set keywordsSource to get the keywords
+		end tell
+		if keywordsSource is not equal to missing value then
+			
+			-- "Ohne Standort" aus den Keywords entfernen
+			set theList to keywordsSource
+			
+			set cleanList to {}
+			
+			repeat with i_keywords from 1 to count theList
+				if {theList's item i_keywords} is not in itemsToDelete then set cleanList's end to theList's item i_keywords
+			end repeat
+			tell sourcePicture
+				if cleanList is not equal to missing value then set its keywords to cleanList
+			end tell
+		end if
+	end tell
+	return true
+	
+end removekeyword
 
 on find_folder_recursive(thisId, actualFolder, fullPath, sammlung)
 	tell application "Photos"
@@ -1574,3 +1758,27 @@ on replace_chars(this_text, search_string, replacement_string)
 	set AppleScript's text item delimiters to ""
 	return this_text
 end replace_chars
+
+on simple_sort(my_list)
+	set the index_list to {}
+	set the sorted_list to {}
+	repeat (the number of items in my_list) times
+		set the low_item to ""
+		repeat with i from 1 to (number of items in my_list)
+			if i is not in the index_list then
+				set this_item to item i of my_list as text
+				if the low_item is "" then
+					set the low_item to this_item
+					set the low_item_index to i
+				else if this_item comes before the low_item then
+					set the low_item to this_item
+					set the low_item_index to i
+				end if
+			end if
+		end repeat
+		set the end of sorted_list to the low_item
+		set the end of the index_list to the low_item_index
+	end repeat
+	return the sorted_list
+	end simple_sort
+	
