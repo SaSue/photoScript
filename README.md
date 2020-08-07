@@ -2,7 +2,7 @@
 
 ## Einleitung
 
-Das photoScript ist eine Sammlung von Scripten, welche ich für mich erstellt habe, um mir das Verwalten meiner photos (ca. 60.000 in 15 Jahren) in Apple Photos zu verwalten. Insbesondere auch GPS Daten hinzuzufügen und in andere Ordner zuverschieben. Das Script ist auf mich angepasst, lässt sich aber natürlich an eigene Bedürfnisse anpassen.
+Das photoScript ist eine Sammlung von Scripten, welche ich für mich erstellt habe, um mir das Verwalten meiner photos (ca. 60.000 in 15 Jahren) in Apple Photos zu vereinfachen. Insbesondere um: GPS Daten hinzuzufügen, Bilder in andere Ordner zu kopieren und Schlagwörter anzupassen - und das möglichst alles per Tastatur. Das Script ist auf mich zugeschnitten, lässt sich aber natürlich an eigene Bedürfnisse anpassen.
 Das Script ist auch Spielwiese für mich, GitHub kennenzulernen und etwas auszuprobieren.
 
 Alle Infos findet Ihr hier:
